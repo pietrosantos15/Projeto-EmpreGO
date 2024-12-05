@@ -1,50 +1,75 @@
-
-
 {% extends "base.html" %}
 
-{% block title %}EmpreGO! - Editar empresa{% endblock %}
+{% block title %}EmpreGO! - Editar Empresa{% endblock %}
 
 {% block content %}
-
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <h1>Editar empresa</h1>
+            <h1>Editar Empresa</h1>
 
-            {% if msg_erro %}  <!-- Exibe mensagem de erro, se houver -->
+            {% if msg_erro %}
                 <div class="alert alert-danger" role="alert">
                     {{ msg_erro }}
                 </div>
             {% endif %}
+            
+            <form action="/editar_empresa/{{ empresa.id_empresa }}" method="post" class="needs-validation" novalidate>
+                <!-- Nome da Empresa -->
+                <label for="titulo" class="form-label">Nome da empresa</label>
+                <input type="text" class="form-control" id="titulo" name="nome_empresa" value="{{ empresa.nome_empresa }}" required>
+                <div class="invalid-feedback">O nome da empresa é obrigatório.</div>
 
-            <form action="/editar_empresa/{{ empresa.id_empresa }}" method="post">
-                <div class="mb-3">
-                    <label for="titulo" class="form-label">Nome Fantasia da Empresa</label>
-                    <input type="text" class="form-control" id="titulo" name="nome_empresa" value="{{ empresa.nome_empresa }}" required>
-                </div>
-                <div class="mb-3">
-                    <label for="CNPJ" class="form-label">CNPJ</label>
-                    <input type="number" class="form-control" id="CNPJ" name="cnpj" maxlength="14"  value="{{empresa.cnpj}}" required> <br><br>
-                </div>
-                <div class="mb-3">
-                    <label for="telefone" class="form-label">Telefone de Contato</label>
-                    <input type="number" class="form-control" id="telefone" name="telefone" maxlength="11" value="{{empresa.telefone }}" required> <br><br>
-                </div>
-                <div class="mb-3">
-                    <label for="email" class="form-label">E-mail</label>
-                    <input type="email" class="form-control" id="email" name="email" value="{{empresa.email }}" required>
-                </div>
-                <div class="mb-3">
-                    <label for="senha" class="form-label">Senha</label>
-                    <input type="password" class="form-control" id="senha" name="senha" value="{{empresa.senha }}" required>
-                </div>
+                <!-- CNPJ -->
+                <label for="cnpj" class="form-label">CNPJ</label>
+                <input type="text" class="form-control" id="cnpj" name="cnpj" value="{{ empresa.cnpj }}" required>
+                <div class="invalid-feedback">CNPJ inválido. Use o formato XX.XXX.XXX/XXXX-XX.</div>
+
+                <!-- Telefone -->
+                <label for="telefone" class="form-label">Telefone</label>
+                <input type="text" class="form-control" id="telefone" name="telefone" value="{{ empresa.telefone }}" required>
+                <div class="invalid-feedback">Telefone inválido. Use o formato (XX) XXXXX-XXXX.</div>
+
+                <h2>Informações para acesso da plataforma</h2>
+                <!-- E-mail -->
+                <label for="email" class="form-label">E-mail</label>
+                <input type="email" class="form-control" id="email" name="email" value="{{ empresa.email }}" required>
+                <div class="invalid-feedback">Insira um e-mail válido.</div>
+
+                <!-- Senha -->
+                <label for="senha" class="form-label">Senha</label>
+                <input type="text" class="form-control" id="senha" name="senha" value="{{ empresa.senha }}" required>
+                <div class="invalid-feedback">A senha é obrigatória.</div>
+                
+                <hr>
                 <div class="d-flex justify-content-center">
-                    <button type="submit" class="btn btn-primary">Salvar alterações</button>
+                    <button type="submit" class="btn btn-primary">Editar Empresa</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script>
+    (() => {
+        'use strict';
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/inputmask@5.0.8/dist/inputmask.min.js"></script>
+<script>
+    Inputmask("99.999.999/9999-99").mask(document.getElementById("cnpj")); // Máscara para CNPJ
+    Inputmask("(99) 99999-9999").mask(document.getElementById("telefone")); // Máscara para Telefone
+</script>
 {% endblock %}

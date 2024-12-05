@@ -8,6 +8,11 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ms-auto">
+                      <li class="nav-item">
+                        <form class="form-inline my-2 my-lg-0" action="/buscar" method="get">
+                          <input class="form-control" type="search" name="termo" placeholder="Pesquisar vaga" aria-label="Pesquisar">
+                      </form>
+                      </li>
                       {% if not session %}
                       <li class="nav-item">
                         <a class="nav-link" href="/login">Login</a>
@@ -19,6 +24,7 @@
                       <li class="nav-item">
                         <a class="nav-link" href="/logout">Sair</a>
                       </li>
+                      
                       {% elif 'id_empresa' in session %}
                       <li class="nav-item">
                         <a class="nav-link" href="/empresa">Painel da Empresa</a>
@@ -31,3 +37,4 @@
                   </div>
                 </div>
               </nav>
+              <!-- <button class="btn btn-outline-success" type="submit">Pesquisar</button> -->

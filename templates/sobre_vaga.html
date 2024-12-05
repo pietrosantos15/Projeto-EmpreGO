@@ -34,7 +34,9 @@
 
                     <!-- Aqui você pode adicionar um botão para candidatar-se à vaga,
                          por exemplo, link para um site externo ou um formulário de contato -->
-                    <a href="candidatarvaga.html" class="btn btn-primary">Candidatar-se</a>
+                    {% if not session %}
+                    <a href="/candidatar_vaga/{{vaga.id_vaga}}" class="btn btn-primary">Candidatar-se</a>
+                    {% endif %}
                 </div>
             </div>
         </div>

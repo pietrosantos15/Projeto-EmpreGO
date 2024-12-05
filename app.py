@@ -1,10 +1,12 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, send_from_directory
 from mysql.connector import Error #biblioteca para bd mysql
 from config import * #arquivo config.py
 from db_functions import * #funções de banco de dados
+import os
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
+app.config['UPLOAD_FOLDER'] = 'curriculos/'
 
 #ROTA DA PÁGINA INICIAL (TODOS ACESAM)
 @app.route('/')
@@ -132,14 +134,14 @@ def cadastrar_empresa():
     #tratando os dados do form
     if request.method == 'POST':
         nome_empresa = request.form['nome_empresa']
-        cnpj = request.form['cnpj']
-        telefone = request.form['telefone']
+        cnpj = limpar_input(request.form['cnpj'])
+        telefone = limpar_input(request.form['telefone'])
         email = request.form['email']
         senha = request.form['senha']
 
         #Verificar
         if not nome_empresa or not cnpj or not telefone or not email or not senha:
-            return render_template('cadastrar_empresa.html', msg_erro="Todos os campossão obrigatórios!")
+            return render_template('cadastrar_empresa.html', msg_erro="Todos os campos são obrigatórios!")
         
         try:
             conexao, cursor = conectar_db()
@@ -183,19 +185,19 @@ def editar_empresa(id_empresa):
             #tratando os dados do form
     if request.method == 'POST':
         nome_empresa = request.form['nome_empresa']
-        cnpj = request.form['cnpj']
-        telefone = request.form['telefone']
+        cnpj = limpar_input(request.form['cnpj'])
+        telefone = limpar_input(request.form['telefone'])
         email = request.form['email']
         senha = request.form['senha']
 
         #Verificar
         if not nome_empresa or not cnpj or not telefone or not email or not senha:
-            return render_template('editar_empresa.html', msg_erro="Todos os campossão obrigatórios!")
+            return render_template('editar_empresa.html', msg_erro="Todos os campos são obrigatórios!")
         
         try:
             conexao, cursor = conectar_db()
             comandoSQL = '''
-            UPDATE empresa 
+            UPDATE empresa
             SET nome_empresa = %s, cnpj = %s, telefone = %s, email = %s, senha = %s WHERE id_empresa = %s;
             '''
             cursor.execute(comandoSQL, (nome_empresa, cnpj, telefone, email, senha, id_empresa))
@@ -325,7 +327,7 @@ def cadastrar_vaga():
         local = ''
         local = request.form['local']
         salario = ''
-        salario = request.form['salario']
+        salario = limpar_input(request.form['salario']) 
         id_empresa = session['id_empresa']
 
         if not titulo or not descricao or not formato or not tipo:
@@ -377,7 +379,7 @@ def editar_vaga(id_vaga):
         formato = request.form['formato']
         tipo = request.form['tipo']
         local = request.form['local']
-        salario = request.form['salario']
+        salario = limpar_input(request.form['salario'])
 
         if not titulo or not descricao or not formato or not tipo:
             return redirect('/empresa')
@@ -432,18 +434,26 @@ def status_vaga(id_vaga):
 #ROTA PARA EXCLUIR VAGA
 @app.route("/excluir_vaga/<int:id_vaga>")
 def excluir_vaga(id_vaga):
-    #Verifica se não tem sessão ativa
+    # Verifica se não tem sessão ativa
     if not session:
         return redirect('/login')
-    #Verifica se o adm está tentando acessar indevidamente
+    # Verifica se o adm está tentando acessar indevidamente
     if 'adm' in session:
         return redirect('/adm')
 
     try:
         conexao, cursor = conectar_db()
+        
+        # Excluir candidatos associados à vaga
+        comandoSQL = 'DELETE FROM candidato WHERE id_vaga = %s'
+        cursor.execute(comandoSQL, (id_vaga,))
+        conexao.commit()
+
+        # Excluir a vaga
         comandoSQL = 'DELETE FROM vaga WHERE id_vaga = %s AND status = "inativa"'
         cursor.execute(comandoSQL, (id_vaga,))
         conexao.commit()
+        
         return redirect('/empresa')
     except Error as erro:
         return f"ERRO! Erro de Banco de Dados: {erro}"
@@ -452,8 +462,7 @@ def excluir_vaga(id_vaga):
     finally:
         encerrar_db(cursor, conexao)
 
-#ROTA PARA VER DETALHES DA VAGA
-@app.route('/sobre_vaga/<int:id_vaga>')
+
 
 #ROTA PARA VER DETALHES DA VAGA
 @app.route('/sobre_vaga/<int:id_vaga>')
@@ -478,18 +487,130 @@ def sobre_vaga(id_vaga):
     except Exception as erro:
         return f"ERRO! Outros erros: {erro}"
     finally:
-        encerrar_db(cursor, conexao)     
+        encerrar_db(cursor, conexao)
+
+@app.route('/candidatar_vaga/<int:id_vaga>', methods=['GET','POST'])
+def candidatar_vaga(id_vaga):
+
+    if 'adm' in session:
+        return redirect('/adm')
+
+    if 'empresa' in session:
+        return redirect('/empresa')
+
+    if request.method == 'GET':
+        return render_template('candidatar_vaga.html',id_vaga=id_vaga)
+
+    if request.method == 'POST':
+        nome_candidato = request.form['nome_candidato']
+        email = request.form['email']
+        telefone = limpar_input(request.form['telefone'])
+        curriculo = request.files['curriculo']
+
+        if not nome_candidato or not email or not telefone or not curriculo:
+            return redirect('/candidatar_vaga')
+        
+        try:
+            nome_arquivo = f"idVaga_{id_vaga}_{curriculo.filename}"
+            curriculo.save(os.path.join(app.config['UPLOAD_FOLDER'],nome_arquivo))
+            conexao, cursor = conectar_db()
+            comandoSQL = "INSERT INTO candidato (nome_candidato, email, telefone, curriculo, id_vaga) VALUES (%s,%s,%s,%s,%s)"
+            cursor.execute(comandoSQL, (nome_candidato, email, telefone, nome_arquivo, id_vaga))
+            conexao.commit()
+            return redirect('/sucesso')
+        except Error as erro:
+             return f"ERRO! Erro de Banco de Dados: {erro}"
+        except Exception as erro:
+            return f"ERRO! Outros erros: {erro}"
+        finally:
+             encerrar_db(cursor, conexao)
+
+@app.route('/sucesso')
+def sucesso():
+    return render_template('sucesso.html')
+
+@app.errorhandler(404)
+def not_found(error):
+     return render_template('erro404.html'), 404
 
 
+@app.route('/excluir_candidato/<filename>/<int:id_vaga>')
+def delete_file(filename, id_vaga):
+    try:
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        os.remove(file_path)  # Exclui o arquivo
+
+        conexao, cursor = conectar_db()
+        comandoSQL = "DELETE FROM candidato WHERE curriculo = %s"
+        cursor.execute(comandoSQL, (filename,))
+        conexao.commit()
+
+        return redirect(f'/candidatos/{id_vaga}')
+    except mysql.connector.Error as erro:
+        return f"Erro de banco de Dados: {erro}"
+    except Exception as erro:
+        return f"Erro de back-end: {erro}"
+    finally:
+        encerrar_db(conexao, cursor)
+        
+
+@app.route('/download/<filename>')
+def download(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=True)
+
+
+
+
+@app.route('/buscar', methods=['GET'])
+def buscar():
+    termo = request.args.get('termo', '').strip() # ele vai capturar o termo atraves de query string
+    if not termo:
+        return redirect('/')
+    
+    try:
+        comandoSQL = '''
+        SELECT vaga.*, empresa.nome_empresa 
+        FROM vaga 
+        JOIN empresa ON vaga.id_empresa = empresa.id_empresa
+        WHERE vaga.status = 'ativa' AND 
+        (vaga.titulo LIKE %s OR vaga.descricao LIKE %s OR empresa.nome_empresa LIKE %s)
+        ORDER BY vaga.id_vaga DESC;
+        '''
+        conexao, cursor = conectar_db()
+        termo_busca = f"%{termo}%"
+        cursor.execute(comandoSQL, (termo_busca, termo_busca, termo_busca)) # vai pesquisar no titulo e na descrição. A query string é a parte da URL que contém parâmetros enviados ao servidor
+        vagas = cursor.fetchall()
+        return render_template('index.html', vagas=vagas, login=session.get('adm') or session.get('id_empresa'))
+    except Error as erro:
+        return f"ERRO! Erro de Banco de Dados: {erro}"
+    except Exception as erro:
+        return f"ERRO! Outros erros: {erro}"
+    finally:
+        encerrar_db(cursor, conexao)
+
+
+@app.route('/candidatos/<int:id_vaga>')
+def ver_candidatos(id_vaga):
+    try:
+        conexao, cursor = conectar_db()
+        comandoSQL = '''
+        SELECT * FROM candidato WHERE id_vaga = %s
+        '''
+        cursor.execute(comandoSQL, (id_vaga,))
+        candidatos = cursor.fetchall()
+        return render_template('candidatos.html', candidatos=candidatos)
+    except mysql.connector.Error as erro:
+        return f"Erro de banco de Dados: {erro}"
+    except Exception as erro:
+        return f"Erro de back-end: {erro}"
+    finally:
+        encerrar_db(conexao, cursor)
 
 #ROTA PARA LOGOUT (ENCERRA AS SESSÕES)
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect('/')
-
-
-
 
 
 #FINAL DO CÓDIGO

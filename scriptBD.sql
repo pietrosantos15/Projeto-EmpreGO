@@ -21,12 +21,21 @@ CREATE TABLE vaga(
     formato ENUM('Presencial', 'Hibrido', 'Remoto') NOT NULL,
     tipo ENUM('CLT','PJ') NOT NULL,
     local VARCHAR(100),
-    salário VARCHAR(10),
+    salario VARCHAR(10),
     id_empresa INT NOT NULL,
     status ENUM('ativa','inativa') DEFAULT 'ativa' NOT NULL,
     FOREIGN KEY (id_empresa) REFERENCES empresa (id_empresa)
         
 );
+
+CREATE TABLE candidato(
+	id_candidato INT PRIMARY KEY AUTO_INCREMENT,
+    nome_candidato VARCHAR(60) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    telefone char(11) NOT NULL,
+    curriculo VARCHAR(50) NOT NULL,
+    id_vaga INT NOT NULL
+    );
 
 INSERT INTO empresa (nome_empresa, cnpj, telefone, email, senha, status)
 VALUES

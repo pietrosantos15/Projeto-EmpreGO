@@ -7,7 +7,7 @@
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <h1>Cadastrar Nova Vaga</h1>
+            <h1>Editar vaga</h1>
 
             {% if msg_erro %}  <!-- Exibe mensagem de erro, se houver -->
                 <div class="alert alert-danger" role="alert">
@@ -15,7 +15,7 @@
                 </div>
             {% endif %}
 
-            <form action="/editar_vaga/{{ vaga.id_vaga}}" method="post">
+            <form action="/editar_vaga/{{ vaga.id_vaga}}" method="post" class="needs-validation" novalidate>
                 <div class="mb-3">
                     <label for="titulo" class="form-label">Título da Vaga</label>
                     <input type="text" class="form-control" id="titulo" value="{{vaga.titulo}}" name="titulo" required>
@@ -54,5 +54,36 @@
         </div>
     </div>
 </div>
+<script>
+    (() => {
+        'use strict'
+        const forms = document.querySelectorAll('.needs-validation')
 
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/inputmask@5.0.8/dist/inputmask.min.js"></script>
+
+<script>
+     Inputmask("numeric", {
+            radixPoint: ",",
+            groupSeparator: ".",
+            digits: 2,
+            autoGroup: true,
+            rightAlign: false,
+            allowMinus: false,
+            prefix: "R$ "
+        }).mask(document.getElementById("salario")); // Salário
+    Inputmask("(99) 99999-9999").mask(document.getElementById("telefone")); // Máscara para Telefone
+</script>
 {% endblock %}
