@@ -591,21 +591,36 @@ def buscar():
 
 @app.route('/candidatos/<int:id_vaga>')
 def ver_candidatos(id_vaga):
+    # Verificar se há sessão ativa
+    if not session or 'id_empresa' not in session:
+        return redirect('/login')
+    id_empresa_logada = session['id_empresa']
     try:
         conexao, cursor = conectar_db()
+        # Verificar se a vaga pertence à empresa logada
         comandoSQL = '''
-        SELECT * FROM candidato WHERE id_vaga = %s
+        SELECT id_empresa FROM vaga WHERE id_vaga = %s;
+        '''
+        cursor.execute(comandoSQL, (id_vaga,))
+        vaga = cursor.fetchone()
+        if not vaga or vaga['id_empresa'] != id_empresa_logada:
+            return "Erro. Você não pode visualizar vagas de outras empresas", 403
+
+        # Recuperar os candidatos da vaga
+        comandoSQL = '''
+        SELECT * FROM candidato WHERE id_vaga = %s;
         '''
         cursor.execute(comandoSQL, (id_vaga,))
         candidatos = cursor.fetchall()
+        
         return render_template('candidatos.html', candidatos=candidatos)
-    except mysql.connector.Error as erro:
-        return f"Erro de banco de Dados: {erro}"
+    
+    except Error as erro:
+        return f"Erro de Banco de Dados: {erro}"
     except Exception as erro:
-        return f"Erro de back-end: {erro}"
+        return f"Erro de Back-end: {erro}"
     finally:
-        encerrar_db(conexao, cursor)
-
+        encerrar_db(cursor, conexao)
 #ROTA PARA LOGOUT (ENCERRA AS SESSÕES)
 @app.route('/logout')
 def logout():
